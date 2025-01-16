@@ -3,10 +3,20 @@ import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
 import './assets/main.css'
+import { useAuthStore } from './stores/auth'
 
-const app = createApp(App)
+const initApp = async () => {
+  const app = createApp(App)
+  const pinia = createPinia()
 
-app.use(createPinia())
-app.use(router)
+  app.use(pinia)
+  app.use(router)
 
-app.mount('#app') 
+  // Auth store'u başlat ve token kontrolü yap
+  const authStore = useAuthStore()
+  await authStore.initializeAuth()
+
+  app.mount('#app')
+}
+
+initApp().catch(console.error) 

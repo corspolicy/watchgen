@@ -1,422 +1,211 @@
 <!-- Coded By PersoDev in 2025 for WatchGen -->
 <template>
-  <div>
+  <div v-if="!authStore.initialized" class="flex h-[calc(100vh-4rem)] items-center justify-center">
+    <div class="text-center">
+      <svg class="mx-auto h-12 w-12 animate-spin text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+      <p class="mt-4 text-sm text-muted-foreground">Yükleniyor...</p>
+    </div>
+  </div>
+
+  <div v-else-if="!authStore.isAuthenticated" class="flex h-[calc(100vh-4rem)] items-center justify-center">
+    <div class="text-center">
+      <h2 class="text-2xl font-bold text-destructive">Giriş Yapılmadı</h2>
+      <p class="mt-2 text-muted-foreground">Bu sayfaya erişmek için giriş yapmanız gerekiyor.</p>
+      <router-link to="/login" class="mt-4 inline-block rounded-md bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90">
+        Giriş Yap
+      </router-link>
+    </div>
+  </div>
+
+  <div v-else-if="!authStore.isAdmin" class="flex h-[calc(100vh-4rem)] items-center justify-center">
+    <div class="text-center">
+      <h2 class="text-2xl font-bold text-destructive">Yetkisiz Erişim</h2>
+      <p class="mt-2 text-muted-foreground">Bu sayfaya erişmek için yönetici yetkisine sahip olmanız gerekiyor.</p>
+    </div>
+  </div>
+
+  <div v-else>
     <div class="mb-8">
       <h2 class="text-2xl font-bold">Site Ayarları</h2>
       <p class="text-sm text-muted-foreground">Genel site ayarlarını buradan yönetebilirsiniz.</p>
     </div>
 
-    <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-      <!-- Genel Ayarlar -->
-      <div class="space-y-6">
-        <div class="rounded-lg border border-border p-6">
-          <h3 class="mb-4 text-lg font-semibold">Genel Ayarlar</h3>
-          <form @submit.prevent="handleGeneralSubmit" class="space-y-4">
-            <div>
-              <label class="mb-2 block text-sm font-medium">Site Başlığı</label>
-              <input v-model="generalSettings.siteTitle" type="text" class="input w-full" required />
-            </div>
-            <div>
-              <label class="mb-2 block text-sm font-medium">Site Açıklaması</label>
-              <textarea v-model="generalSettings.siteDescription" class="input min-h-[100px] w-full" required></textarea>
-            </div>
-            <div>
-              <label class="mb-2 block text-sm font-medium">Site Logosu</label>
-              <div class="relative aspect-video w-full overflow-hidden rounded-lg border-2 border-dashed border-border">
-                <img v-if="generalSettings.siteLogo" :src="generalSettings.siteLogo" class="absolute inset-0 h-full w-full object-contain" />
-                <div v-else class="absolute inset-0 flex flex-col items-center justify-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="mb-2 h-8 w-8 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                  <p class="text-sm text-muted-foreground">Logo yüklemek için tıklayın</p>
-                </div>
-                <input type="file" class="absolute inset-0 cursor-pointer opacity-0" @change="handleLogoUpload" accept="image/*" />
-              </div>
-            </div>
-            <div>
-              <label class="mb-2 block text-sm font-medium">Site Favicon</label>
-              <div class="relative h-16 w-16 overflow-hidden rounded-lg border-2 border-dashed border-border">
-                <img v-if="generalSettings.siteFavicon" :src="generalSettings.siteFavicon" class="absolute inset-0 h-full w-full object-contain" />
-                <div v-else class="absolute inset-0 flex flex-col items-center justify-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                <input type="file" class="absolute inset-0 cursor-pointer opacity-0" @change="handleFaviconUpload" accept="image/*" />
-              </div>
-            </div>
-            <div class="flex justify-end">
-              <button type="submit" class="btn btn-primary" :disabled="loading">
-                <span v-if="loading">Kaydediliyor...</span>
-                <span v-else>Kaydet</span>
-              </button>
-            </div>
-          </form>
+    <!-- Başarılı Mesajı -->
+    <div v-if="successMessage" class="mb-4 rounded-md bg-green-50 p-4">
+      <div class="flex">
+        <div class="flex-shrink-0">
+          <svg class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+          </svg>
         </div>
-
-        <div class="rounded-lg border border-border p-6">
-          <h3 class="mb-4 text-lg font-semibold">SEO Ayarları</h3>
-          <form @submit.prevent="handleSeoSubmit" class="space-y-4">
-            <div>
-              <label class="mb-2 block text-sm font-medium">Meta Başlık</label>
-              <input v-model="seoSettings.metaTitle" type="text" class="input w-full" required />
-            </div>
-            <div>
-              <label class="mb-2 block text-sm font-medium">Meta Açıklama</label>
-              <textarea v-model="seoSettings.metaDescription" class="input min-h-[100px] w-full" required></textarea>
-            </div>
-            <div>
-              <label class="mb-2 block text-sm font-medium">Meta Anahtar Kelimeler</label>
-              <div class="flex flex-wrap gap-2">
-                <span v-for="keyword in seoSettings.metaKeywords" :key="keyword" class="flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-sm text-primary">
-                  {{ keyword }}
-                  <button type="button" @click="removeKeyword(keyword)" class="text-primary hover:text-primary/80">×</button>
-                </span>
-                <input
-                  v-model="newKeyword"
-                  @keydown.enter.prevent="addKeyword"
-                  type="text"
-                  class="input h-8 w-32"
-                  placeholder="Yeni kelime..."
-                />
-              </div>
-            </div>
-            <div class="flex justify-end">
-              <button type="submit" class="btn btn-primary" :disabled="loading">
-                <span v-if="loading">Kaydediliyor...</span>
-                <span v-else>Kaydet</span>
-              </button>
-            </div>
-          </form>
+        <div class="ml-3">
+          <p class="text-sm font-medium text-green-800">{{ successMessage }}</p>
         </div>
       </div>
+    </div>
 
-      <!-- Diğer Ayarlar -->
-      <div class="space-y-6">
-        <!-- Bakım Modu -->
-        <div class="rounded-lg border border-border p-6">
-          <h3 class="mb-4 text-lg font-semibold">Bakım Modu</h3>
-          <div class="space-y-4">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="font-medium">Bakım Modu</p>
-                <p class="text-sm text-muted-foreground">
-                  Site bakım modundayken sadece adminler giriş yapabilir
-                </p>
-              </div>
-              <label class="relative inline-flex cursor-pointer items-center">
-                <input
-                  type="checkbox"
-                  v-model="maintenanceMode"
-                  class="peer sr-only"
-                  @change="toggleMaintenanceMode"
-                />
-                <div class="h-6 w-11 rounded-full bg-muted peer-checked:bg-primary"></div>
-              </label>
-            </div>
-            <div v-if="maintenanceMode">
-              <label class="mb-2 block text-sm font-medium">Bakım Mesajı</label>
-              <textarea
-                v-model="maintenanceMessage"
-                class="input min-h-[100px] w-full"
-                placeholder="Bakım modu mesajını girin..."
-                @change="saveMaintenanceMessage"
-              ></textarea>
-            </div>
+    <form @submit.prevent="handleSubmit" class="space-y-8">
+      <!-- SEO Ayarları -->
+      <div class="rounded-lg border border-border p-6">
+        <h3 class="mb-4 text-lg font-semibold">SEO Ayarları</h3>
+        <div class="space-y-4">
+          <div>
+            <label class="mb-2 block text-sm font-medium">Site Başlığı</label>
+            <input v-model="form.siteTitle" type="text" class="input w-full" />
+          </div>
+          <div>
+            <label class="mb-2 block text-sm font-medium">Site Açıklaması</label>
+            <textarea v-model="form.siteDescription" class="input min-h-[100px] w-full"></textarea>
+          </div>
+          <div>
+            <label class="mb-2 block text-sm font-medium">Anahtar Kelimeler</label>
+            <input v-model="form.siteKeywords" type="text" class="input w-full" placeholder="anime, manga, izle, vb." />
           </div>
         </div>
+      </div>
 
-        <div class="rounded-lg border border-border p-6">
-          <h3 class="mb-4 text-lg font-semibold">Sosyal Medya</h3>
-          <form @submit.prevent="handleSocialSubmit" class="space-y-4">
-            <div>
-              <label class="mb-2 block text-sm font-medium">Facebook</label>
-              <input v-model="socialSettings.facebook" type="url" class="input w-full" placeholder="https://facebook.com/..." />
-            </div>
-            <div>
-              <label class="mb-2 block text-sm font-medium">Twitter</label>
-              <input v-model="socialSettings.twitter" type="url" class="input w-full" placeholder="https://twitter.com/..." />
-            </div>
-            <div>
-              <label class="mb-2 block text-sm font-medium">Instagram</label>
-              <input v-model="socialSettings.instagram" type="url" class="input w-full" placeholder="https://instagram.com/..." />
-            </div>
-            <div>
-              <label class="mb-2 block text-sm font-medium">Discord</label>
-              <input v-model="socialSettings.discord" type="url" class="input w-full" placeholder="https://discord.gg/..." />
-            </div>
-            <div class="flex justify-end">
-              <button type="submit" class="btn btn-primary" :disabled="loading">
-                <span v-if="loading">Kaydediliyor...</span>
-                <span v-else>Kaydet</span>
-              </button>
-            </div>
-          </form>
+      <!-- Bakım Modu -->
+      <div class="rounded-lg border border-border p-6">
+        <div class="flex items-center justify-between">
+          <h3 class="text-lg font-semibold">Bakım Modu</h3>
+          <label class="relative inline-flex cursor-pointer items-center">
+            <input type="checkbox" v-model="form.maintenanceMode" class="peer sr-only" />
+            <div class="peer h-6 w-11 rounded-full bg-muted after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-primary peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none"></div>
+          </label>
         </div>
-
-        <div class="rounded-lg border border-border p-6">
-          <h3 class="mb-4 text-lg font-semibold">İletişim Bilgileri</h3>
-          <form @submit.prevent="handleContactSubmit" class="space-y-4">
-            <div>
-              <label class="mb-2 block text-sm font-medium">E-posta Adresi</label>
-              <input v-model="contactSettings.email" type="email" class="input w-full" required />
-            </div>
-            <div>
-              <label class="mb-2 block text-sm font-medium">Telefon</label>
-              <input v-model="contactSettings.phone" type="tel" class="input w-full" />
-            </div>
-            <div>
-              <label class="mb-2 block text-sm font-medium">Adres</label>
-              <textarea v-model="contactSettings.address" class="input min-h-[100px] w-full"></textarea>
-            </div>
-            <div class="flex justify-end">
-              <button type="submit" class="btn btn-primary" :disabled="loading">
-                <span v-if="loading">Kaydediliyor...</span>
-                <span v-else>Kaydet</span>
-              </button>
-            </div>
-          </form>
-        </div>
-
-        <div class="rounded-lg border border-border p-6">
-          <h3 class="mb-4 text-lg font-semibold">Özelleştirme</h3>
-          <form @submit.prevent="handleCustomizationSubmit" class="space-y-4">
-            <div>
-              <label class="mb-2 block text-sm font-medium">Ana Renk</label>
-              <input v-model="customizationSettings.primaryColor" type="color" class="h-10 w-full rounded-lg border border-border" />
-            </div>
-            <div>
-              <label class="mb-2 block text-sm font-medium">Yazı Tipi</label>
-              <select v-model="customizationSettings.fontFamily" class="input w-full">
-                <option value="inter">Inter</option>
-                <option value="roboto">Roboto</option>
-                <option value="poppins">Poppins</option>
-              </select>
-            </div>
-            <div>
-              <label class="mb-2 flex items-center gap-2 text-sm font-medium">
-                <input v-model="customizationSettings.darkMode" type="checkbox" class="h-4 w-4 rounded border-border bg-background text-primary focus:ring-primary" />
-                Karanlık Mod
-              </label>
-            </div>
-            <div class="flex justify-end">
-              <button type="submit" class="btn btn-primary" :disabled="loading">
-                <span v-if="loading">Kaydediliyor...</span>
-                <span v-else>Kaydet</span>
-              </button>
-            </div>
-          </form>
+        <div class="mt-4">
+          <label class="mb-2 block text-sm font-medium">Bakım Mesajı</label>
+          <textarea v-model="form.maintenanceMessage" class="input min-h-[100px] w-full"></textarea>
         </div>
       </div>
-    </div>
 
-    <!-- Bildirim -->
-    <div
-      v-if="notification"
-      class="fixed bottom-4 right-4 rounded-lg bg-primary p-4 text-white shadow-lg"
-    >
-      {{ notification }}
-    </div>
+      <!-- İletişim Ayarları -->
+      <div class="rounded-lg border border-border p-6">
+        <h3 class="mb-4 text-lg font-semibold">İletişim Ayarları</h3>
+        <div class="space-y-4">
+          <div>
+            <label class="mb-2 block text-sm font-medium">İletişim E-posta</label>
+            <input v-model="form.contactEmail" type="email" class="input w-full" />
+          </div>
+          <div>
+            <label class="mb-2 block text-sm font-medium">Discord</label>
+            <input v-model="form.socialLinks.discord" type="url" class="input w-full" placeholder="https://discord.gg/..." />
+          </div>
+          <div>
+            <label class="mb-2 block text-sm font-medium">Twitter</label>
+            <input v-model="form.socialLinks.twitter" type="url" class="input w-full" placeholder="https://twitter.com/..." />
+          </div>
+          <div>
+            <label class="mb-2 block text-sm font-medium">GitHub</label>
+            <input v-model="form.socialLinks.github" type="url" class="input w-full" placeholder="https://github.com/..." />
+          </div>
+        </div>
+      </div>
+
+      <!-- Hata Mesajı -->
+      <div v-if="error" class="rounded-md bg-destructive/10 p-4 text-sm text-destructive">
+        {{ error }}
+      </div>
+
+      <!-- Kaydet Butonu -->
+      <div class="flex justify-end">
+        <button type="submit" class="btn btn-primary" :disabled="loading">
+          <span v-if="loading">
+            <svg class="mr-2 h-4 w-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Kaydediliyor...
+          </span>
+          <span v-else>Kaydet</span>
+        </button>
+      </div>
+    </form>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import { useSettingsStore } from '@/stores/settings'
+import { useAuthStore } from '@/stores/auth'
+import { useRouter } from 'vue-router'
 
+const router = useRouter()
+const settingsStore = useSettingsStore()
+const authStore = useAuthStore()
 const loading = ref(false)
-const notification = ref('')
-const newKeyword = ref('')
+const error = ref('')
+const successMessage = ref('')
 
-// Bakım modu ayarları
-const maintenanceMode = ref(false)
-const maintenanceMessage = ref('Sitemiz bakımdadır. Lütfen daha sonra tekrar deneyin.')
-
-// Genel ayarlar
-const generalSettings = ref({
-  siteTitle: 'WatchGen',
-  siteDescription: 'Anime izleme platformu',
-  siteLogo: '',
-  siteFavicon: ''
-})
-
-// SEO ayarları
-const seoSettings = ref({
-  metaTitle: 'WatchGen - Anime İzleme Platformu',
-  metaDescription: 'En yeni ve popüler animeleri Türkçe altyazılı olarak izleyebileceğiniz platform.',
-  metaKeywords: ['anime', 'manga', 'izle', 'türkçe altyazı']
-})
-
-// Sosyal medya ayarları
-const socialSettings = ref({
-  facebook: '',
-  twitter: '',
-  instagram: '',
-  discord: ''
-})
-
-// İletişim ayarları
-const contactSettings = ref({
-  email: 'info@watchgen.com',
-  phone: '',
-  address: ''
-})
-
-// Özelleştirme ayarları
-const customizationSettings = ref({
-  primaryColor: '#6366f1',
-  fontFamily: 'inter',
-  darkMode: true
-})
-
-// Sayfa yüklendiğinde ayarları yükle
-const loadSettings = () => {
-  const savedSettings = localStorage.getItem('siteSettings')
-  if (savedSettings) {
-    const settings = JSON.parse(savedSettings)
-    generalSettings.value = { ...generalSettings.value, ...settings.general }
-    seoSettings.value = { ...seoSettings.value, ...settings.seo }
-    socialSettings.value = { ...socialSettings.value, ...settings.social }
-    contactSettings.value = { ...contactSettings.value, ...settings.contact }
-    customizationSettings.value = { ...customizationSettings.value, ...settings.customization }
-    maintenanceMode.value = settings.maintenanceMode || false
-    maintenanceMessage.value = settings.maintenanceMessage || 'Sitemiz bakımdadır. Lütfen daha sonra tekrar deneyin.'
+const form = ref({
+  siteTitle: '',
+  siteDescription: '',
+  siteKeywords: '',
+  maintenanceMode: false,
+  maintenanceMessage: '',
+  contactEmail: '',
+  socialLinks: {
+    discord: '',
+    twitter: '',
+    github: ''
   }
-}
+})
 
-// Ayarları kaydet
-const saveSettings = () => {
-  const settings = {
-    general: generalSettings.value,
-    seo: seoSettings.value,
-    social: socialSettings.value,
-    contact: contactSettings.value,
-    customization: customizationSettings.value,
-    maintenanceMode: maintenanceMode.value,
-    maintenanceMessage: maintenanceMessage.value
-  }
-  localStorage.setItem('siteSettings', JSON.stringify(settings))
-  showNotification('Ayarlar kaydedildi')
-}
-
-// Logo yükleme
-const handleLogoUpload = (event: Event) => {
-  const file = (event.target as HTMLInputElement).files?.[0]
-  if (file) {
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      generalSettings.value.siteLogo = e.target?.result as string
+const handleSubmit = async () => {
+  try {
+    loading.value = true
+    error.value = ''
+    successMessage.value = ''
+    
+    // Form validasyonu
+    if (form.value.maintenanceMode && !form.value.maintenanceMessage) {
+      error.value = 'Bakım modu açıkken bakım mesajı zorunludur.'
+      return
     }
-    reader.readAsDataURL(file)
-  }
-}
 
-// Favicon yükleme
-const handleFaviconUpload = (event: Event) => {
-  const file = (event.target as HTMLInputElement).files?.[0]
-  if (file) {
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      generalSettings.value.siteFavicon = e.target?.result as string
+    const success = await settingsStore.updateSettings(form.value)
+    if (success) {
+      successMessage.value = 'Ayarlar başarıyla güncellendi!'
+      // 3 saniye sonra başarı mesajını kaldır
+      setTimeout(() => {
+        successMessage.value = ''
+      }, 3000)
     }
-    reader.readAsDataURL(file)
-  }
-}
-
-// Anahtar kelime ekleme/çıkarma
-const addKeyword = () => {
-  if (newKeyword.value && !seoSettings.value.metaKeywords.includes(newKeyword.value)) {
-    seoSettings.value.metaKeywords.push(newKeyword.value)
-  }
-  newKeyword.value = ''
-}
-
-const removeKeyword = (keyword: string) => {
-  const index = seoSettings.value.metaKeywords.indexOf(keyword)
-  if (index !== -1) {
-    seoSettings.value.metaKeywords.splice(index, 1)
-  }
-}
-
-// Form gönderme işlemleri
-const handleGeneralSubmit = async () => {
-  try {
-    loading.value = true
-    saveSettings()
-  } catch (error) {
-    console.error('Hata:', error)
-    showNotification('Bir hata oluştu')
+  } catch (err: any) {
+    error.value = err.message || 'Ayarlar kaydedilirken bir hata oluştu'
   } finally {
     loading.value = false
   }
 }
 
-const handleSeoSubmit = async () => {
+onMounted(async () => {
   try {
     loading.value = true
-    saveSettings()
-  } catch (error) {
-    console.error('Hata:', error)
-    showNotification('Bir hata oluştu')
+    error.value = ''
+
+    if (!authStore.initialized) {
+      await authStore.initializeAuth()
+    }
+
+    if (!authStore.isAuthenticated) {
+      router.push('/login')
+      return
+    }
+
+    if (!authStore.isAdmin) {
+      error.value = 'Bu sayfaya erişmek için yönetici yetkisine sahip olmanız gerekiyor.'
+      return
+    }
+
+    await settingsStore.fetchSettings()
+    form.value = { ...settingsStore.settings }
+  } catch (err: any) {
+    error.value = err.message || 'Ayarlar yüklenirken bir hata oluştu'
   } finally {
     loading.value = false
   }
-}
-
-const handleSocialSubmit = async () => {
-  try {
-    loading.value = true
-    saveSettings()
-  } catch (error) {
-    console.error('Hata:', error)
-    showNotification('Bir hata oluştu')
-  } finally {
-    loading.value = false
-  }
-}
-
-const handleContactSubmit = async () => {
-  try {
-    loading.value = true
-    saveSettings()
-  } catch (error) {
-    console.error('Hata:', error)
-    showNotification('Bir hata oluştu')
-  } finally {
-    loading.value = false
-  }
-}
-
-const handleCustomizationSubmit = async () => {
-  try {
-    loading.value = true
-    saveSettings()
-  } catch (error) {
-    console.error('Hata:', error)
-    showNotification('Bir hata oluştu')
-  } finally {
-    loading.value = false
-  }
-}
-
-// Bakım modu işlemleri
-const toggleMaintenanceMode = () => {
-  saveSettings()
-  showNotification(maintenanceMode.value ? 'Bakım modu aktif' : 'Bakım modu devre dışı')
-}
-
-const saveMaintenanceMessage = () => {
-  saveSettings()
-  showNotification('Bakım mesajı güncellendi')
-}
-
-// Bildirim göster
-const showNotification = (message: string) => {
-  notification.value = message
-  setTimeout(() => {
-    notification.value = ''
-  }, 3000)
-}
-
-// Sayfa yüklendiğinde ayarları yükle
-loadSettings()
+})
 </script> 

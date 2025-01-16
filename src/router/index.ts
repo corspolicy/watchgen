@@ -84,19 +84,6 @@ const router = createRouter({
       path: '/maintenance',
       name: 'maintenance',
       component: MaintenanceView
-    },
-    {
-      path: '/admin',
-      name: 'admin',
-      component: () => import('../views/admin/DashboardView.vue'),
-      meta: { requiresAuth: true, requiresAdmin: true },
-      children: [
-        {
-          path: 'settings',
-          name: 'admin-settings',
-          component: SettingsView
-        }
-      ]
     }
   ]
 })
@@ -109,19 +96,34 @@ router.beforeEach((to, from, next) => {
   const settings = localStorage.getItem('siteSettings')
   const maintenanceMode = settings ? JSON.parse(settings).maintenanceMode : false
 
-  if (maintenanceMode && to.path !== '/maintenance' && !isAdmin) {
-    next('/maintenance')
-    return
+  if (maintenanceMode) {
+    if (to.path === '/maintenance' || to.path === '/login') {
+      return next()
+    }
+    
+    if (!isAdmin) {
+      return next('/maintenance')
+    }
+    
+    if (isAdmin && to.path.startsWith('/admin')) {
+      return next()
+    }
+    
+    return next('/maintenance')
   }
 
-  if (to.meta.requiresAuth && !isLoggedIn) {
-    next('/login')
-    return
+  if (to.matched.some(record => record.meta.requiresAdmin)) {
+    if (!isLoggedIn) {
+      return next('/login')
+    }
+    
+    if (!isAdmin) {
+      return next('/')
+    }
   }
 
-  if (to.meta.requiresAdmin && !isAdmin) {
-    next('/')
-    return
+  if (to.matched.some(record => record.meta.requiresAuth) && !isLoggedIn) {
+    return next('/login')
   }
 
   next()

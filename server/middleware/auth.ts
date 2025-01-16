@@ -9,7 +9,7 @@ interface AuthRequest extends Request {
   }
 }
 
-export const authMiddleware = (
+export const authMiddleware = async (
   req: AuthRequest,
   res: Response,
   next: NextFunction
@@ -35,7 +35,7 @@ export const authMiddleware = (
   }
 }
 
-export const adminMiddleware = (
+export const adminMiddleware = async (
   req: AuthRequest,
   res: Response,
   next: NextFunction
