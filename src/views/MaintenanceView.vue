@@ -21,14 +21,16 @@ const isAdmin = ref(false)
 onMounted(() => {
   const settings = localStorage.getItem('siteSettings')
   if (settings) {
-    const { maintenanceMessage: message } = JSON.parse(settings)
-    maintenanceMessage.value = message
+    const parsedSettings = JSON.parse(settings)
+    if (parsedSettings.maintenanceMessage) {
+      maintenanceMessage.value = parsedSettings.maintenanceMessage
+    }
   }
 
-  const user = localStorage.getItem('user')
-  if (user) {
-    const { role } = JSON.parse(user)
-    isAdmin.value = role === 'admin'
+  const userStr = localStorage.getItem('user')
+  if (userStr) {
+    const user = JSON.parse(userStr)
+    isAdmin.value = user?.role === 'admin'
   }
 })
 </script> 

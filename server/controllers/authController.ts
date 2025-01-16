@@ -1,57 +1,52 @@
 import { Request, Response } from 'express'
-import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
-import pool from '../config/database'
+import bcrypt from 'bcryptjs'
+import pool from '../config/database.js'
+
+interface AuthRequest extends Request {
+  user?: {
+    id: number
+    email: string
+    role: string
+  }
+}
 
 export const login = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body
 
-    const [users] = await pool.execute(
-      'SELECT * FROM users WHERE email = ?',
-      [email]
-    )
-
+    // Kullanıcıyı bul
+    const [users] = await pool.query('SELECT * FROM users WHERE email = ?', [email])
     const user = (users as any[])[0]
 
     if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: 'E-posta veya şifre hatalı'
-      })
+      return res.status(401).json({ message: 'Email veya şifre hatalı' })
     }
 
-    const isMatch = await bcrypt.compare(password, user.password)
-
-    if (!isMatch) {
-      return res.status(401).json({
-        success: false,
-        message: 'E-posta veya şifre hatalı'
-      })
+    // Şifreyi kontrol et
+    const isValidPassword = await bcrypt.compare(password, user.password)
+    if (!isValidPassword) {
+      return res.status(401).json({ message: 'Email veya şifre hatalı' })
     }
 
+    // Token oluştur
     const token = jwt.sign(
       { id: user.id, email: user.email, role: user.role },
       process.env.JWT_SECRET || 'your-secret-key',
-      { expiresIn: '1d' }
+      { expiresIn: '24h' }
     )
 
+    // Kullanıcı bilgilerini gönder (şifre hariç)
+    const { password: _, ...userWithoutPassword } = user
+
     res.json({
-      success: true,
+      message: 'Giriş başarılı!',
       token,
-      user: {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        role: user.role
-      }
+      user: userWithoutPassword
     })
   } catch (error) {
-    console.error('Login error:', error)
-    res.status(500).json({
-      success: false,
-      message: 'Sunucu hatası'
-    })
+    console.error('Giriş hatası:', error)
+    res.status(500).json({ message: 'Giriş sırasında bir hata oluştu' })
   }
 }
 
@@ -59,95 +54,45 @@ export const register = async (req: Request, res: Response) => {
   try {
     const { username, email, password } = req.body
 
-    const [existingUsers] = await pool.execute(
-      'SELECT * FROM users WHERE email = ?',
-      [email]
-    )
-
+    // Email kontrolü
+    const [existingUsers] = await pool.query('SELECT * FROM users WHERE email = ?', [email])
     if ((existingUsers as any[]).length > 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Bu e-posta adresi zaten kullanılıyor'
-      })
+      return res.status(400).json({ message: 'Bu email adresi zaten kullanılıyor' })
     }
 
-    const salt = await bcrypt.genSalt(10)
-    const hashedPassword = await bcrypt.hash(password, salt)
+    // Şifreyi hashle
+    const hashedPassword = await bcrypt.hash(password, 10)
 
-    const [result] = await pool.execute(
+    // Kullanıcıyı kaydet
+    await pool.query(
       'INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)',
       [username, email, hashedPassword, 'user']
     )
 
-    const userId = (result as any).insertId
-
-    const token = jwt.sign(
-      { id: userId, email, role: 'user' },
-      process.env.JWT_SECRET || 'your-secret-key',
-      { expiresIn: '1d' }
-    )
-
-    res.status(201).json({
-      success: true,
-      token,
-      user: {
-        id: userId,
-        username,
-        email,
-        role: 'user'
-      }
-    })
+    res.status(201).json({ message: 'Kayıt başarılı! Giriş yapabilirsiniz.' })
   } catch (error) {
-    console.error('Register error:', error)
-    res.status(500).json({
-      success: false,
-      message: 'Sunucu hatası'
-    })
+    console.error('Kayıt hatası:', error)
+    res.status(500).json({ message: 'Kayıt sırasında bir hata oluştu' })
   }
 }
 
-export const forgotPassword = async (req: Request, res: Response) => {
+export const getCurrentUser = async (req: AuthRequest, res: Response) => {
   try {
-    const { email } = req.body
-
-    const [users] = await pool.execute(
-      'SELECT * FROM users WHERE email = ?',
-      [email]
-    )
-
-    if ((users as any[]).length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Bu e-posta adresiyle kayıtlı kullanıcı bulunamadı'
-      })
+    if (!req.user?.id) {
+      return res.status(401).json({ message: 'Kullanıcı bulunamadı' })
     }
 
-    res.json({
-      success: true,
-      message: 'Şifre sıfırlama bağlantısı e-posta adresinize gönderildi'
-    })
-  } catch (error) {
-    console.error('Forgot password error:', error)
-    res.status(500).json({
-      success: false,
-      message: 'Sunucu hatası'
-    })
-  }
-}
+    // Kullanıcı bilgilerini getir
+    const [users] = await pool.query('SELECT id, username, email, role FROM users WHERE id = ?', [req.user.id])
+    const user = (users as any[])[0]
 
-export const resetPassword = async (req: Request, res: Response) => {
-  try {
-    const { token, password } = req.body
+    if (!user) {
+      return res.status(401).json({ message: 'Kullanıcı bulunamadı' })
+    }
 
-    res.json({
-      success: true,
-      message: 'Şifreniz başarıyla güncellendi'
-    })
+    res.json(user)
   } catch (error) {
-    console.error('Reset password error:', error)
-    res.status(500).json({
-      success: false,
-      message: 'Sunucu hatası'
-    })
+    console.error('Kullanıcı bilgileri getirme hatası:', error)
+    res.status(500).json({ message: 'Kullanıcı bilgileri alınırken bir hata oluştu' })
   }
 } 
