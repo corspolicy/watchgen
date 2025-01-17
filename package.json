@@ -3,22 +3,17 @@
   "version": "1.0.0",
   "description": "Modern ve Yenilikçi Bir Anime İzleme Platformu",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc && vite build",
-    "serve": "vite preview",
-    "db:setup": "node scripts/db-setup.js",
-    "server": "nodemon --exec tsx server/index.ts"
+    "serve": "vite preview"
   },
   "dependencies": {
+    "@iconify/vue": "^4.3.0",
+    "@prisma/client": "6.2.1",
     "@vitejs/plugin-vue": "^4.3.4",
     "axios": "^1.5.0",
-    "bcryptjs": "^2.4.3",
-    "cors": "^2.8.5",
-    "dotenv": "^16.4.7",
-    "express": "^4.21.2",
-    "jsonwebtoken": "^9.0.2",
-    "mysql2": "^3.12.0",
     "pinia": "^2.1.6",
     "tailwindcss": "^3.3.3",
     "tsx": "^4.19.2",
@@ -37,9 +32,7 @@
     "@types/node": "^20.17.13",
     "autoprefixer": "^10.4.15",
     "cross-env": "^7.0.3",
-    "nodemon": "^3.1.9",
     "postcss": "^8.4.29",
-    "ts-node": "^10.9.2",
     "vite": "^4.4.9",
     "vue-tsc": "^1.8.8"
   },

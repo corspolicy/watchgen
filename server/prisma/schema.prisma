@@ -1,0 +1,144 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  Admin
+  Visitor
+}
+
+model Setting {
+  id        String   @id @default(cuid())
+  keyName   String
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+}
+
+model User {
+  id String @id @default(cuid())
+
+  username String
+  email    String
+  password String
+
+  avatar Image? @relation(fields: [imageId], references: [id])
+
+  lists     List[]
+  favorites Anime[] @relation(name: "favorites")
+  watchlist Anime[] @relation(name: "watchlist")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+
+  role    UserRole @default(Visitor)
+  imageId String
+
+  history History[]
+  uploads Video[]
+}
+
+model List {
+  id String @id @default(cuid())
+
+  user   User    @relation(fields: [userId], references: [id])
+  animes Anime[]
+
+  createdAt DateTime @default(now())
+  userId    String
+}
+
+model History {
+  id String @id @default(cuid())
+
+  user    User  @relation(fields: [userId], references: [id])
+  anime   Anime @relation(fields: [animeId], references: [id])
+  episode Int
+
+  watchedAt DateTime @default(now())
+  userId    String
+  animeId   String
+}
+
+// TODO: Sezonlar getirerek tek bir anime başlığı altında diğer sezonlara erişimi kolaylaştır
+// * Season adında yeni bir model oluştur
+// * Oluşturduğun Season modeline id name episodes ekle
+// * Prisma VSCode eklentisi senin için modeller arasındaki ilişkilendirmeleri kaydettiğin zaman otomatik yapar (Eğer format on save açıksa)
+model Anime {
+  id String @id @default(cuid())
+
+  title       String
+  description String
+
+  image Image @relation(fields: [imageId], references: [id])
+
+  episodes Episode[]
+  uploads  Video[]
+
+  favorites   User[]    @relation(name: "favorites")
+  inWatchlist User[]    @relation(name: "watchlist")
+  isHistory   History[]
+  inList      List[]
+
+  releasedAt DateTime
+  pushedAt   DateTime @default(now())
+  imageId    String
+}
+
+model Episode {
+  id String @id @default(cuid())
+
+  title       String
+  description String
+
+  thumbnail Image   @relation(fields: [imageId], references: [id])
+  imageId   String
+  video     Video[]
+
+  anime   Anime?  @relation(fields: [animeId], references: [id])
+  animeId String?
+
+  // dakika cinsinden
+  duration Int
+
+  releasedAt DateTime
+  pushedAt   DateTime @default(now())
+}
+
+model Image {
+  id String @id @default(cuid())
+
+  name String
+  url  String
+
+  avatar   User[]
+  animes   Anime[]
+  episodes Episode[]
+}
+
+model Video {
+  id String @id @default(cuid())
+
+  anime     Anime    @relation(fields: [animeId], references: [id])
+  episode   Episode? @relation(fields: [episodeId], references: [id])
+  episodeId String?
+
+  url        String
+  duration   Int
+  resolution Int
+
+  owner   User   @relation(fields: [userId], references: [id])
+  animeId String
+  userId  String
+}

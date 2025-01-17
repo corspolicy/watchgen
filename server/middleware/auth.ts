@@ -1,50 +1,54 @@
-import { Request, Response, NextFunction } from 'express'
-import jwt from 'jsonwebtoken'
+import { User } from "@prisma/client";
+import { Request, Response, NextFunction } from "express";
+import jwt from "jsonwebtoken";
+import prisma from "../lib/prisma";
 
-interface AuthRequest extends Request {
-  user?: {
-    id: number
-    email: string
-    role: string
+declare module "express" {
+  interface Request {
+    user: User | null;
   }
 }
 
-export const authMiddleware = async (
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const token = req.headers.authorization?.split(' ')[1]
+export async function authMiddleware(req: Request, res: Response) {
+  let splittedAuthorizationHeader = req.headers.authorization?.split(" ") || [];
+  let method = splittedAuthorizationHeader[0];
+  let token = splittedAuthorizationHeader[1];
 
-    if (!token) {
+  switch (method) {
+    case "Bearer":
+      if (!token)
+        return res.status(401).json({
+          success: false,
+          message: "Yetkilendirme başarısız: Token bulunamadı",
+        });
+
+      try {
+        const decoded = jwt.verify(
+          token,
+          process.env.JWT_SECRET || "your-secret-key"
+        ) as jwt.JwtPayload;
+        req.user = await prisma.user.findFirst({ where: { id: decoded.id } });
+      } catch (e) {
+        return res.status(401).json({
+          success: false,
+          message: "Yetkilendirme başarısız: Geçersiz token",
+        });
+      }
+      break;
+
+    default:
       return res.status(401).json({
         success: false,
-        message: 'Yetkilendirme başarısız: Token bulunamadı'
-      })
-    }
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key')
-    req.user = decoded as { id: number; email: string; role: string }
-    next()
-  } catch (error) {
-    return res.status(401).json({
-      success: false,
-      message: 'Yetkilendirme başarısız: Geçersiz token'
-    })
+        message: "Yetkilendirme başarısız: Geçersiz Yöntem",
+      });
+      break;
   }
 }
 
-export const adminMiddleware = async (
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
-) => {
-  if (req.user?.role !== 'admin') {
+export function adminMiddleware(req: Request, res: Response) {
+  if (req.user?.role != "Admin")
     return res.status(403).json({
       success: false,
-      message: 'Bu işlem için yönetici yetkisi gerekiyor'
-    })
-  }
-  next()
-} 
+      message: "Bu işlem için yönetici yetkisi gerekiyor",
+    });
+}

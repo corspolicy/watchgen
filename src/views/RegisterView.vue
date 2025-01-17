@@ -2,11 +2,13 @@
   <div class="container mx-auto max-w-md py-16">
     <div class="rounded-lg border border-border bg-card p-8">
       <h1 class="mb-6 text-2xl font-bold">Hesap Oluştur</h1>
-      
+
       <form @submit.prevent="handleRegister" class="space-y-4">
         <!-- Kullanıcı Adı -->
         <div>
-          <label for="username" class="mb-2 block text-sm font-medium">Kullanıcı Adı</label>
+          <label for="username" class="mb-2 block text-sm font-medium"
+            >Kullanıcı Adı</label
+          >
           <input
             id="username"
             v-model="username"
@@ -19,7 +21,9 @@
 
         <!-- Email -->
         <div>
-          <label for="email" class="mb-2 block text-sm font-medium">Email</label>
+          <label for="email" class="mb-2 block text-sm font-medium"
+            >Email</label
+          >
           <input
             id="email"
             v-model="email"
@@ -32,7 +36,9 @@
 
         <!-- Şifre -->
         <div>
-          <label for="password" class="mb-2 block text-sm font-medium">Şifre</label>
+          <label for="password" class="mb-2 block text-sm font-medium"
+            >Şifre</label
+          >
           <input
             id="password"
             v-model="password"
@@ -45,7 +51,9 @@
 
         <!-- Şifre Tekrar -->
         <div>
-          <label for="confirmPassword" class="mb-2 block text-sm font-medium">Şifre Tekrar</label>
+          <label for="confirmPassword" class="mb-2 block text-sm font-medium"
+            >Şifre Tekrar</label
+          >
           <input
             id="confirmPassword"
             v-model="confirmPassword"
@@ -69,19 +77,28 @@
           </div>
           <div class="ml-3">
             <label for="terms" class="text-sm">
-              <router-link to="/terms" class="text-primary hover:underline">Kullanım koşullarını</router-link>
+              <router-link to="/terms" class="text-primary hover:underline"
+                >Kullanım koşullarını</router-link
+              >
               okudum ve kabul ediyorum
             </label>
           </div>
         </div>
 
         <!-- Hata Mesajı -->
-        <div v-if="error" class="rounded-md bg-destructive/10 p-4 text-sm text-destructive">
+        <div
+          v-if="error"
+          class="rounded-md bg-destructive/10 p-4 text-sm text-destructive"
+        >
           {{ error }}
         </div>
 
         <!-- Kayıt Ol Butonu -->
-        <button type="submit" class="btn btn-primary w-full" :disabled="loading || !isFormValid">
+        <button
+          type="submit"
+          class="btn btn-primary w-full"
+          :disabled="loading || !isFormValid"
+        >
           <span v-if="loading">Kayıt yapılıyor...</span>
           <span v-else>Kayıt Ol</span>
         </button>
@@ -99,48 +116,67 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
-import { register } from '@/api/auth'
+import { ref, computed } from "vue";
+import { useRouter } from "vue-router";
+import { register } from "@/api/auth";
 
-const router = useRouter()
+import defaultApiInterface from "../api/default";
+import { AxiosError } from "axios";
 
-const username = ref('')
-const email = ref('')
-const password = ref('')
-const confirmPassword = ref('')
-const acceptTerms = ref(false)
-const loading = ref(false)
-const error = ref('')
+const router = useRouter();
+
+const username = ref("");
+const email = ref("");
+const password = ref("");
+const confirmPassword = ref("");
+const acceptTerms = ref(false);
+const loading = ref(false);
+const error = ref("");
 
 const isFormValid = computed(() => {
   return (
     username.value.length >= 3 &&
-    email.value.includes('@') &&
+    email.value.includes("@") &&
     password.value.length >= 6 &&
     password.value === confirmPassword.value &&
     acceptTerms.value
-  )
-})
+  );
+});
 
 const handleRegister = async () => {
   if (!isFormValid.value) {
-    error.value = 'Lütfen tüm alanları doğru şekilde doldurun.'
-    return
+    error.value = "Lütfen tüm alanları doğru şekilde doldurun.";
+    return;
   }
 
   try {
-    loading.value = true
-    error.value = ''
-    
-    await register(username.value, email.value, password.value)
-    
+    loading.value = true;
+    error.value = "";
+
+    const response = await defaultApiInterface({
+      method: "POST",
+      url: "/auth/register",
+      data: {
+        username: username.value,
+        email: email.value,
+        password: password.value,
+      },
+    }).catch((err: AxiosError) => {
+      // TODO: burada hatayı handlela
+      return;
+    });
+
+    if (!response) return;
+
+    // await register(username.value, email.value, password.value)
+
     // Başarılı kayıt sonrası giriş sayfasına yönlendir
-    router.push('/login')
+    router.push("/login");
   } catch (err: any) {
-    error.value = err.response?.data?.message || 'Kayıt sırasında bir hata oluştu.'
+    error.value =
+      err.response?.data?.message || "Kayıt sırasında bir hata oluştu.";
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
-</script> 
+};
+</script>
